@@ -163,7 +163,7 @@ def add_comment(request: HttpRequest, post_id: int) -> HttpResponse:
 
 
 @login_required
-def follow_index(request):
+def follow_index(request: HttpRequest) -> HttpResponse:
     """Функция вызова страницы с подписками."""
     template: str = 'posts/follow.html'
     title: str = 'Подписки на авторов'
@@ -180,17 +180,17 @@ def follow_index(request):
 
 
 @login_required
-def profile_follow(request, username):
+def profile_follow(request: HttpRequest, username: str) -> HttpResponse:
     """Функция подписки."""
-    author = get_object_or_404(User, username=username)
+    author: Union[User, Http404] = get_object_or_404(User, username=username)
     if author != request.user:
         Follow.objects.get_or_create(user=request.user, author=author)
     return redirect('posts:profile', username=username)
 
 
 @login_required
-def profile_unfollow(request, username):
-    """Функция отписки"""
-    author = get_object_or_404(User, username=username)
+def profile_unfollow(request: HttpRequest, username: str) -> HttpResponse:
+    """Функция отписки."""
+    author: Union[User, Http404] = get_object_or_404(User, username=username)
     Follow.objects.filter(user=request.user, author=author).delete()
     return redirect('posts:profile', username=username)
