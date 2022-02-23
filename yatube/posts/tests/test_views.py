@@ -4,7 +4,7 @@ from django.db.models.fields.files import ImageFieldFile
 from django.test import TestCase, Client
 from django.urls import reverse
 
-from posts.models import Post, Group, Comment
+from posts.models import Post, Group, Comment, Follow
 from posts.forms import PostForm
 
 User = get_user_model()
@@ -15,6 +15,7 @@ class PostViewsTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
+        cls.follower = User.objects.create_user(username='follower')
         cls.group = Group.objects.create(
             title='Тестовый заголовок',
             description='Тестовый текст',
@@ -42,6 +43,8 @@ class PostViewsTests(TestCase):
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
+        self.follower_client = Client()
+        self.follower_client.force_login(self.follower)
         self.post_index = reverse('posts:index')
         self.post_group = reverse(
             'posts:group_list',
@@ -68,6 +71,15 @@ class PostViewsTests(TestCase):
             'posts:add_comment',
             kwargs={'post_id': self.post.id},
         )
+        self.post_follow = reverse(
+            'posts:profile_follow',
+            kwargs={'username': self.post.author}
+        )
+        self.post_unfollow = reverse(
+            'posts:profile_unfollow',
+            kwargs={'username': self.post.author}
+        )
+        self.post_follow_index = reverse('posts:follow_index')
 
     def test_views_correct_template(self):
         """Проверяем соответствие view-функций адресам."""
@@ -190,6 +202,56 @@ class PostViewsTests(TestCase):
         self.assertEqual(response.content, cache.get('index_page'))
         cache.clear()
         self.assertNotEqual(response.content, cache.get('index_page'))
+
+    def test_views_auth_user_follow_unfollow(self):
+        """
+        Проверяем что авторизованный пользователь
+        может подписаться и отписаться от автора.
+        """
+        response = self.follower_client.get(self.post_follow)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            Follow.objects.filter(
+                user=self.follower,
+                author=self.post.author
+            ).exists()
+        )
+        response = self.follower_client.get(self.post_unfollow)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            Follow.objects.filter(
+                user=self.follower,
+                author=self.post.author
+            ).exists()
+        )
+
+    def test_views_follow_self(self):
+        """Проверяем что нельзя подписаться на себя."""
+        response = self.authorized_client.get(self.post_follow)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            Follow.objects.filter(
+                user=self.follower,
+                author=self.post.author
+            ).exists()
+        )
+
+    def test_views_follow_index_page_obj(self):
+        """
+        Проверяем наличие поста в подписках
+        подписанных и не подписанных пользователей.
+        """
+        obj = self.post
+        self.follower_client.get(self.post_follow)
+        response = self.follower_client.get(self.post_follow_index)
+        page_obj = response.context['page_obj']
+        context = page_obj.object_list
+        self.assertIn(obj, context)
+        self.follower_client.get(self.post_unfollow)
+        response = self.follower_client.get(self.post_follow_index)
+        page_obj = response.context['page_obj']
+        context = page_obj.object_list
+        self.assertNotIn(obj, context)
 
 
 class PaginatorViewsTests(TestCase):

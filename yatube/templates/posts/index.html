@@ -4,6 +4,7 @@
   {{ title }}
 {% endblock %}
 {% block content %}
+  {% include 'includes/switcher.html' %}
   <h1>{{ title }}</h1>
   {% cache 20 index_page page_obj.number %}
     {% for post in page_obj %}

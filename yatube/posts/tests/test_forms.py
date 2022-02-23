@@ -10,6 +10,7 @@ from django.urls import reverse
 from posts.models import Post, Group
 
 User = get_user_model()
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
 class PostFormsTests(TestCase):
@@ -97,10 +98,6 @@ class PostFormsTests(TestCase):
         self.assertEqual(Post.objects.count(), post_count)
 
 
-# Тесты для финального спринта!
-TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
-
-
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostCreateFormImageTests(TestCase):
     @classmethod
@@ -134,7 +131,7 @@ class PostCreateFormImageTests(TestCase):
             kwargs={'username': self.user}
         )
 
-    def test_forms_create_task(self):
+    def test_forms_create_post(self):
         """Проверяем, что картинка передается в созданный пост."""
         post_count = Post.objects.count()
         small_gif = (

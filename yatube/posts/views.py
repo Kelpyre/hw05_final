@@ -6,7 +6,7 @@ from django.http import HttpRequest, Http404, HttpResponse
 from django.core.paginator import Paginator, Page
 from django.contrib.auth.decorators import login_required
 
-from .models import Post, Group, User, Comment
+from .models import Post, Group, User, Comment, Follow
 from .forms import PostForm, CommentForm
 
 WORD_COUNT = 30
@@ -22,10 +22,11 @@ def index(request: HttpRequest) -> HttpResponse:
     paginator: Paginator = Paginator(posts, POST_COUNT)
     page_number: Union[str, None] = request.GET.get('page')
     page_obj: Page = paginator.get_page(page_number)
-    context: dict[str, Union[str, Page]] = {
+    context: dict[str, Union[str, Page, bool]] = {
         'title': title,
         'description': description,
         'page_obj': page_obj,
+        'index': True
     }
     return render(
         request,
@@ -69,10 +70,17 @@ def profile(request: HttpRequest, username: str) -> HttpResponse:
     paginator: Paginator = Paginator(posts, POST_COUNT)
     page_number: Union[str, None] = request.GET.get('page')
     page_obj: Page = paginator.get_page(page_number)
-    context: dict[str, Union[str, Page, User]] = {
+    if request.user.is_authenticated and author != request.user:
+        following = Follow.objects.filter(author=author).exists()
+    elif author == request.user:
+        following = None
+    else:
+        following = False
+    context: dict[str, Union[str, Page, User, bool, None]] = {
         'title': title,
         'page_obj': page_obj,
         'author': author,
+        'following': following,
     }
     return render(request, template, context)
 
@@ -152,3 +160,37 @@ def add_comment(request: HttpRequest, post_id: int) -> HttpResponse:
         comment.post = post
         comment.save()
     return redirect('posts:post_detail', post_id=post_id)
+
+
+@login_required
+def follow_index(request):
+    """Функция вызова страницы с подписками."""
+    template: str = 'posts/follow.html'
+    title: str = 'Подписки на авторов'
+    posts = Post.objects.filter(author__following__user=request.user)
+    paginator: Paginator = Paginator(posts, POST_COUNT)
+    page_number: Union[str, None] = request.GET.get('page')
+    page_obj: Page = paginator.get_page(page_number)
+    context: dict[str, Union[str, Page, bool]] = {
+        'title': title,
+        'page_obj': page_obj,
+        'follow': True,
+    }
+    return render(request, template, context)
+
+
+@login_required
+def profile_follow(request, username):
+    """Функция подписки."""
+    author = get_object_or_404(User, username=username)
+    if author != request.user:
+        Follow.objects.get_or_create(user=request.user, author=author)
+    return redirect('posts:profile', username=username)
+
+
+@login_required
+def profile_unfollow(request, username):
+    """Функция отписки"""
+    author = get_object_or_404(User, username=username)
+    Follow.objects.filter(user=request.user, author=author).delete()
+    return redirect('posts:profile', username=username)
