@@ -70,17 +70,33 @@ class Comment(models.Model):
         Post,
         on_delete=models.CASCADE,
         related_name='comments',
+        verbose_name='Пост',
+        help_text='Пост, к которому будет относиться комментарий',
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='comments',
+        verbose_name='Автор',
+        help_text='Автор комментария',
     )
     text = models.TextField(
         verbose_name='Текст комментария',
         help_text='Текст нового комментария',
     )
-    pub_date = models.DateTimeField(auto_now_add=True)
+    pub_date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата публикации',
+        help_text='Дата публикации комментария',
+    )
+
+    class Meta:
+        ordering = ['-pub_date']
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
+
+    def __str__(self) -> str:
+        return self.text[:15]
 
 
 class Follow(models.Model):
@@ -88,9 +104,27 @@ class Follow(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='follower',
+        verbose_name='Пользователь',
+        help_text='Пользователь, который подписался',
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='following',
+        verbose_name='Автор',
+        help_text='Автор, на которого подписались',
     )
+
+    class Meta:
+        ordering = ['user']
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['author', 'user'],
+                name='unique_follow'
+            )
+        ]
+
+    def __str__(self) -> str:
+        return self.user.username

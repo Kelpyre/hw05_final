@@ -13,6 +13,7 @@ User = get_user_model()
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostFormsTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -29,6 +30,11 @@ class PostFormsTests(TestCase):
             text='Тестовый заголовок',
             pub_date='12.02.2022',
         )
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def setUp(self):
         self.user = PostFormsTests.user
@@ -96,40 +102,6 @@ class PostFormsTests(TestCase):
             response
         )
         self.assertEqual(Post.objects.count(), post_count)
-
-
-@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
-class PostCreateFormImageTests(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.user = User.objects.create_user(username='auth')
-        cls.group = Group.objects.create(
-            title='Тестовый заголовок',
-            description='Тестовый текст',
-            slug='test-slug'
-        )
-        cls.post = Post.objects.create(
-            author=cls.user,
-            group=cls.group,
-            text='Тестовый заголовок',
-            pub_date='12.02.2022',
-        )
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
-
-    def setUp(self):
-        self.user = PostCreateFormImageTests.user
-        self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
-        self.post_create = reverse('posts:post_create')
-        self.post_profile = reverse(
-            'posts:profile',
-            kwargs={'username': self.user}
-        )
 
     def test_forms_create_post(self):
         """Проверяем, что картинка передается в созданный пост."""

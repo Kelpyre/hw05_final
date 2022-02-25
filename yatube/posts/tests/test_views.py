@@ -15,7 +15,6 @@ class PostViewsTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
-        cls.follower = User.objects.create_user(username='follower')
         cls.group = Group.objects.create(
             title='Тестовый заголовок',
             description='Тестовый текст',
@@ -43,8 +42,6 @@ class PostViewsTests(TestCase):
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
-        self.follower_client = Client()
-        self.follower_client.force_login(self.follower)
         self.post_index = reverse('posts:index')
         self.post_group = reverse(
             'posts:group_list',
@@ -71,15 +68,6 @@ class PostViewsTests(TestCase):
             'posts:add_comment',
             kwargs={'post_id': self.post.id},
         )
-        self.post_follow = reverse(
-            'posts:profile_follow',
-            kwargs={'username': self.post.author}
-        )
-        self.post_unfollow = reverse(
-            'posts:profile_unfollow',
-            kwargs={'username': self.post.author}
-        )
-        self.post_follow_index = reverse('posts:follow_index')
 
     def test_views_correct_template(self):
         """Проверяем соответствие view-функций адресам."""
@@ -203,6 +191,40 @@ class PostViewsTests(TestCase):
         cache.clear()
         self.assertNotEqual(response.content, cache.get('index_page'))
 
+
+class PostViewsFollowTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username='auth')
+        cls.follower = User.objects.create_user(username='follower')
+        cls.group = Group.objects.create(
+            title='Тестовый заголовок',
+            description='Тестовый текст',
+            slug='test-slug'
+        )
+        cls.post = Post.objects.create(
+            author=cls.user,
+            group=cls.group,
+            text='Тестовый заголовок',
+            pub_date='12.02.2022',
+        )
+
+    def setUp(self):
+        self.authorized_client = Client()
+        self.authorized_client.force_login(self.user)
+        self.follower_client = Client()
+        self.follower_client.force_login(self.follower)
+        self.post_follow = reverse(
+            'posts:profile_follow',
+            kwargs={'username': self.post.author}
+        )
+        self.post_unfollow = reverse(
+            'posts:profile_unfollow',
+            kwargs={'username': self.post.author}
+        )
+        self.post_follow_index = reverse('posts:follow_index')
+
     def test_views_auth_user_follow_unfollow(self):
         """
         Проверяем что авторизованный пользователь
@@ -235,6 +257,38 @@ class PostViewsTests(TestCase):
                 author=self.post.author
             ).exists()
         )
+
+
+class PostViewsFollowIndexTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username='auth')
+        cls.follower = User.objects.create_user(username='follower')
+        cls.group = Group.objects.create(
+            title='Тестовый заголовок',
+            description='Тестовый текст',
+            slug='test-slug'
+        )
+        cls.post = Post.objects.create(
+            author=cls.user,
+            group=cls.group,
+            text='Тестовый заголовок',
+            pub_date='12.02.2022',
+        )
+
+    def setUp(self):
+        self.follower_client = Client()
+        self.follower_client.force_login(self.follower)
+        self.post_follow = reverse(
+            'posts:profile_follow',
+            kwargs={'username': self.post.author}
+        )
+        self.post_unfollow = reverse(
+            'posts:profile_unfollow',
+            kwargs={'username': self.post.author}
+        )
+        self.post_follow_index = reverse('posts:follow_index')
 
     def test_views_follow_index_page_obj(self):
         """
