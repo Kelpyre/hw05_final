@@ -38,7 +38,6 @@ class PostViewsTests(TestCase):
         )
 
     def setUp(self):
-        self.user = PostViewsTests.user
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
@@ -197,7 +196,6 @@ class PostViewsFollowTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
-        cls.other_user = User.objects.create_user(username='noname')
         cls.follower = User.objects.create_user(username='follower')
         cls.group = Group.objects.create(
             title='Тестовый заголовок',
@@ -250,7 +248,6 @@ class PostViewsFollowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertFalse(
             Follow.objects.filter(
-                user=self.other_user,
                 author=self.post.author
             ).exists()
         )
@@ -387,8 +384,6 @@ class PaginatorViewsTests(TestCase):
         )
 
     def setUp(self):
-        self.user = PaginatorViewsTests.user
-        self.other_user = PaginatorViewsTests.other_user
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
         self.other_client = Client()

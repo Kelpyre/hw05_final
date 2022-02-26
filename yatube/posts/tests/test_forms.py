@@ -37,7 +37,6 @@ class PostFormsTests(TestCase):
         shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def setUp(self):
-        self.user = PostFormsTests.user
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)

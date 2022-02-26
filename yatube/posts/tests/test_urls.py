@@ -12,6 +12,7 @@ class PostURLTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
+        cls.other_user = User.objects.create_user(username='NoName')
         cls.group = Group.objects.create(
             title='Тестовый заголовок',
             description='Тестовый текст',
@@ -26,8 +27,6 @@ class PostURLTests(TestCase):
 
     def setUp(self):
         self.guest_client = Client()
-        self.user = PostURLTests.user
-        self.other_user = User.objects.create_user(username='NoName')
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
         self.other_client = Client()
