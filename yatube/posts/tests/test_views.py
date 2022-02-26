@@ -1,6 +1,7 @@
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from django.db.models.fields.files import ImageFieldFile
+from django.shortcuts import redirect
 from django.test import TestCase, Client
 from django.urls import reverse
 
@@ -224,6 +225,7 @@ class PostViewsFollowTests(TestCase):
             kwargs={'username': self.post.author}
         )
         self.post_follow_index = reverse('posts:follow_index')
+        self.redirect = f'/auth/login/?next={self.post_follow}'
 
     def test_views_auth_user_follow(self):
         """
@@ -244,8 +246,8 @@ class PostViewsFollowTests(TestCase):
         Проверяем что не авторизованный пользователь
         не может подписаться на автора.
         """
-        response = self.guest_client.get(self.post_follow)
-        self.assertEqual(response.status_code, 302)
+        response = self.guest_client.get(self.post_follow, follow=True)
+        self.assertRedirects(response, self.redirect)
         self.assertFalse(
             Follow.objects.filter(
                 author=self.post.author
