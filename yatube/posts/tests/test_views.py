@@ -1,7 +1,6 @@
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from django.db.models.fields.files import ImageFieldFile
-from django.shortcuts import redirect
 from django.test import TestCase, Client
 from django.urls import reverse
 
