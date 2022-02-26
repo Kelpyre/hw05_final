@@ -72,11 +72,10 @@ def profile(request: HttpRequest, username: str) -> HttpResponse:
     page_obj: Page = paginator.get_page(page_number)
     following = None
     is_auth = request.user.is_authenticated
-    if is_auth is True:
-        is_exists = Follow.objects.filter(
-            user=request.user,
-            author=author).exists()
-        following = is_auth and is_exists
+    is_exists = Follow.objects.filter(
+        user=request.user.id,
+        author=author).exists()
+    following = is_auth and is_exists
     context: dict[str, Union[str, Page, User, bool, None]] = {
         'title': title,
         'page_obj': page_obj,

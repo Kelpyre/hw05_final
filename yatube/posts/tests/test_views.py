@@ -197,6 +197,7 @@ class PostViewsFollowTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
+        cls.other_user = User.objects.create_user(username='noname')
         cls.follower = User.objects.create_user(username='follower')
         cls.group = Group.objects.create(
             title='Тестовый заголовок',
@@ -211,6 +212,7 @@ class PostViewsFollowTests(TestCase):
         )
 
     def setUp(self):
+        self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
         self.follower_client = Client()
@@ -225,10 +227,10 @@ class PostViewsFollowTests(TestCase):
         )
         self.post_follow_index = reverse('posts:follow_index')
 
-    def test_views_auth_user_follow_unfollow(self):
+    def test_views_auth_user_follow(self):
         """
         Проверяем что авторизованный пользователь
-        может подписаться и отписаться от автора.
+        может подписаться на автора.
         """
         response = self.follower_client.get(self.post_follow)
         self.assertEqual(response.status_code, 302)
@@ -238,6 +240,27 @@ class PostViewsFollowTests(TestCase):
                 author=self.post.author
             ).exists()
         )
+
+    def test_views_no_auth_user_follow(self):
+        """
+        Проверяем что не авторизованный пользователь
+        не может подписаться на автора.
+        """
+        response = self.guest_client.get(self.post_follow)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            Follow.objects.filter(
+                user=self.other_user,
+                author=self.post.author
+            ).exists()
+        )
+
+    def test_views_auth_user_unfollow(self):
+        """
+        Проверяем что авторизованный пользователь
+        может отписаться от автора.
+        """
+        self.follower_client.get(self.post_follow)
         response = self.follower_client.get(self.post_unfollow)
         self.assertEqual(response.status_code, 302)
         self.assertFalse(
@@ -276,6 +299,10 @@ class PostViewsFollowIndexTests(TestCase):
             text='Тестовый заголовок',
             pub_date='12.02.2022',
         )
+        cls.follow = Follow.objects.create(
+            author=cls.user,
+            user=cls.follower,
+        )
 
     def setUp(self):
         self.follower_client = Client()
@@ -293,14 +320,20 @@ class PostViewsFollowIndexTests(TestCase):
     def test_views_follow_index_page_obj(self):
         """
         Проверяем наличие поста в подписках
-        подписанных и не подписанных пользователей.
+        подписанных пользователей.
         """
         obj = self.post
-        self.follower_client.get(self.post_follow)
         response = self.follower_client.get(self.post_follow_index)
         page_obj = response.context['page_obj']
         context = page_obj.object_list
         self.assertIn(obj, context)
+
+    def test_views_unfollow_index_page_obj(self):
+        """
+        Проверяем отсутствие поста в подписках
+        не подписанных пользователей.
+        """
+        obj = self.post
         self.follower_client.get(self.post_unfollow)
         response = self.follower_client.get(self.post_follow_index)
         page_obj = response.context['page_obj']
